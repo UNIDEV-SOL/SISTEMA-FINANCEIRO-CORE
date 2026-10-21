@@ -21,6 +21,7 @@ import "../../modules/audit/audit.docs";
 import "../../modules/help/help.docs";
 import "../../modules/assistant/assistant.docs";
 import "../../modules/periods/periods.docs";
+import "../../modules/growth/growth.docs";
 import { registry } from "./registry";
 
 export const openApiDocument = new OpenApiGeneratorV3(registry.definitions).generateDocument({
