@@ -5,8 +5,8 @@ import { prisma } from "../../shared/db/prisma";
 import { ForbiddenException, UnauthorizedException } from "../../shared/errors/http-exceptions";
 import { INACTIVE_ACCOUNT, signToken } from "../../shared/middleware/authenticate";
 import { appSettings } from "../../shared/settings/app-settings";
-import type { LoginInput, RegisterInput } from "./auth.schemas";
-import type { AuthUser, Session } from "./auth.types";
+import type { LoginInput, PreferencesInput, RegisterInput } from "./auth.schemas";
+import type { AuthUser, Preferences, Session } from "./auth.types";
 import { BCRYPT_ROUNDS, createUserAccount, defaultProfileId } from "./user-accounts";
 
 type UserWithProfile = User & { profile: Profile };
@@ -19,6 +19,7 @@ const toAuthUser = (u: UserWithProfile, actingAs: AuthUser["actingAs"] = null): 
   active: u.active,
   profile: { id: u.profile.id, code: u.profile.code, name: u.profile.name, superAdmin: u.profile.superAdmin },
   actingAs,
+  preferences: { textSize: u.textSize, highContrast: u.highContrast, reduceMotion: u.reduceMotion },
 });
 
 // Hash fixo para comparar quando o email não existe, para a resposta demorar o mesmo
@@ -48,6 +49,11 @@ export const authService = {
   },
 
   /** `actingAsId` é o cabeçalho X-Acting-As: devolve-se a pessoa se a ligação for válida, senão null. */
+  async updatePreferences(userId: string, input: PreferencesInput): Promise<Preferences> {
+    const u = await prisma.user.update({ where: { id: userId }, data: input, select: { textSize: true, highContrast: true, reduceMotion: true } });
+    return u;
+  },
+
   async me(userId: string, actingAsId?: string): Promise<AuthUser> {
     const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, include: { profile: true } });
     const actingAs = actingAsId ? await findActingAs({ id: user.id, profile: user.profile }, actingAsId.trim()) : null;
