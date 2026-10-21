@@ -29,6 +29,7 @@ export const MENU: MenuSeed[] = [
       { code: "BUDGETS", label: "Orçamentos", path: "/orcamentos", icon: "target", apiPaths: ["/budgets/**"] },
       { code: "GOALS", label: "Metas", path: "/metas", icon: "piggy-bank", apiPaths: ["/goals/**"] },
       { code: "INVESTMENTS", label: "Investimentos", path: "/investimentos", icon: "trending-up", apiPaths: ["/investments/**"] },
+      { code: "GROWTH", label: "Crescer", path: "/crescer", icon: "sprout", apiPaths: ["/growth/**"] },
     ],
   },
   {
@@ -68,6 +69,14 @@ export const MENU: MenuSeed[] = [
       { code: "ADMIN_HELP", label: "Manual e FAQ", path: "/admin/ajuda", icon: "book-open", apiPaths: ["/admin/help/**"], protectReads: true },
       { code: "ADMIN_AUDIT", label: "Auditoria", path: "/admin/auditoria", icon: "scroll-text", apiPaths: ["/admin/audit/**", "GET /admin/users"], protectReads: true },
       { code: "ADMIN_PERIODS", label: "Períodos", path: "/admin/periodos", icon: "calendar-range", apiPaths: ["/admin/periods/**"], protectReads: true },
+      {
+        code: "ADMIN_GROWTH",
+        label: "Planos de crescimento",
+        path: "/admin/crescimento",
+        icon: "sprout",
+        apiPaths: ["/admin/growth-plans/**"],
+        protectReads: true,
+      },
       // Só permissão, sem página: VIEW = ver as contas de qualquer utilizador activo (X-Acting-As); EDIT = também alterar
       { code: "ADMIN_USER_DATA", label: "Contas dos utilizadores", icon: "building-2" },
     ],
@@ -83,7 +92,7 @@ export interface ProfileSeed {
   permissions: Record<string, readonly Action[]>;
 }
 
-const PERSONAL = ["DASHBOARD", "TRANSACTIONS", "ACCOUNTS", "BUDGETS", "GOALS", "INVESTMENTS", "REPORTS", "ALERTS", "CATEGORIES", "FAMILY", "HELP", "SETTINGS"];
+const PERSONAL = ["DASHBOARD", "TRANSACTIONS", "ACCOUNTS", "BUDGETS", "GOALS", "INVESTMENTS", "GROWTH", "REPORTS", "ALERTS", "CATEGORIES", "FAMILY", "HELP", "SETTINGS"];
 
 const all = (codes: string[]) => Object.fromEntries(codes.map((c) => [c, ACTIONS]));
 
@@ -91,7 +100,10 @@ const all = (codes: string[]) => Object.fromEntries(codes.map((c) => [c, ACTIONS
  * Permissões em funcionalidades acrescentadas depois da primeira versão: dadas aos perfis de sistema
  * que já existiam quando a funcionalidade é criada (nunca repostas depois de o admin as retirar).
  */
-export const LATER_GRANTS: { profile: string; functionality: string; actions: Action[] }[] = [{ profile: "ADMIN", functionality: "ADMIN_USER_DATA", actions: ["VIEW"] }];
+export const LATER_GRANTS: { profile: string; functionality: string; actions: Action[] }[] = [
+  { profile: "ADMIN", functionality: "ADMIN_USER_DATA", actions: ["VIEW"] },
+  ...["ADMIN", "USER", "DEPENDENT"].map((profile) => ({ profile, functionality: "GROWTH", actions: [...ACTIONS] })),
+];
 
 /** Perfis de sistema (não apagáveis). */
 export const PROFILES: ProfileSeed[] = [

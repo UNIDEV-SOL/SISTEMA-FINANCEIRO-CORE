@@ -27,6 +27,11 @@ export interface SettingValues {
   "help.showFaq": boolean;
   "periods.autoCreate": boolean;
   "periods.autoClosePrevious": boolean;
+  "growth.lookbackMonths": number;
+  "growth.emergencyMonths": number;
+  "growth.targetSavingsRate": number;
+  "growth.wantsMaxRate": number;
+  "growth.comfortableShare": number;
   "site.headline": string;
   "site.subheadline": string;
   "site.ctaLabel": string;
@@ -81,6 +86,7 @@ export const SETTING_GROUPS: { group: string; label: string }[] = [
   { group: "assistant", label: "Assistente" },
   { group: "help", label: "Ajuda" },
   { group: "periods", label: "Períodos" },
+  { group: "growth", label: "Crescimento" },
   { group: "site", label: "Site público" },
 ];
 
@@ -259,6 +265,51 @@ export const SETTING_DEFINITIONS = [
     group: "periods",
     label: "Fechar o ano anterior automaticamente",
     description: "Quando o novo ano é aberto automaticamente, o anterior fica só para consulta.",
+  }),
+  def({
+    key: "growth.lookbackMonths",
+    value: 6,
+    type: "NUMBER",
+    group: "growth",
+    label: "Meses usados nas médias",
+    description: "Meses completos (antes do actual) usados para calcular a receita, a despesa e a poupança médias.",
+    constraints: { min: 1, max: 24, integer: true },
+  }),
+  def({
+    key: "growth.emergencyMonths",
+    value: 6,
+    type: "NUMBER",
+    group: "growth",
+    label: "Fundo de emergência (meses de despesa)",
+    description: "Quantos meses de despesa a poupança deve cobrir antes de propor investimentos.",
+    constraints: { min: 1, max: 24, integer: true },
+  }),
+  def({
+    key: "growth.targetSavingsRate",
+    value: 20,
+    type: "NUMBER",
+    group: "growth",
+    label: "Taxa de poupança recomendada (%)",
+    description: "Parte da receita que se recomenda guardar todos os meses (regra 50/30/20).",
+    constraints: { min: 1, max: 90, integer: true },
+  }),
+  def({
+    key: "growth.wantsMaxRate",
+    value: 30,
+    type: "NUMBER",
+    group: "growth",
+    label: "Máximo em desejos (%)",
+    description: "Parte da receita a partir da qual os gastos em desejos (lazer, compras…) geram uma proposta de corte.",
+    constraints: { min: 5, max: 90, integer: true },
+  }),
+  def({
+    key: "growth.comfortableShare",
+    value: 50,
+    type: "NUMBER",
+    group: "growth",
+    label: "Esforço confortável de um plano (%)",
+    description: "Um plano é confortável se a prestação mensal usar até esta parte da poupança média.",
+    constraints: { min: 10, max: 100, integer: true },
   }),
   def({
     key: "site.headline",
