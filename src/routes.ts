@@ -17,6 +17,9 @@ import { adminGrowthPlansRoutes, growthRoutes } from "./modules/growth/growth.ro
 import { adminHelpRoutes, helpRoutes } from "./modules/help/help.routes";
 import { investmentsRoutes } from "./modules/investments/investments.routes";
 import { adminPeriodsRoutes, periodsRoutes } from "./modules/periods/periods.routes";
+import { forecastRoutes } from "./modules/forecast/forecast.routes";
+import { importsRoutes } from "./modules/imports/imports.routes";
+import { recurringRoutes } from "./modules/recurring/recurring.routes";
 import { profilesRoutes } from "./modules/profiles/profiles.routes";
 import { reportsRoutes } from "./modules/reports/reports.routes";
 import { settingsRoutes } from "./modules/settings/settings.routes";
@@ -44,12 +47,16 @@ routes.use("/access", accessRoutes);
 routes.use("/periods", periodsRoutes);
 routes.use("/accounts", accountsRoutes);
 routes.use("/categories", categoriesRoutes);
+// Antes de /transactions: o router das transações não conhece estas rotas
+routes.use("/transactions/import", importsRoutes);
 routes.use("/transactions", transactionsRoutes);
+routes.use("/recurring", recurringRoutes);
 routes.use("/dashboard", dashboardRoutes);
 routes.use("/budgets", budgetsRoutes);
 routes.use("/goals", goalsRoutes);
 routes.use("/investments", investmentsRoutes);
 routes.use("/growth", growthRoutes);
+routes.use("/forecast", forecastRoutes);
 routes.use("/reports", reportsRoutes);
 routes.use("/alerts", alertsRoutes);
 routes.use("/family", familyRoutes);
