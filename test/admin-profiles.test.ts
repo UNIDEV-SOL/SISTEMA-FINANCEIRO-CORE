@@ -68,7 +68,7 @@ describe("admin — perfis", () => {
     const admin = await signUpAs("SUPER_ADMIN");
     const user = await profile("USER");
     const current = (await api().get(`/api/v1/admin/profiles/${user.id}/permissions`).set(admin.auth).expect(200)).body;
-    expect(current).toHaveLength(12);
+    expect(current).toHaveLength(13);
     expect(current.find((p: { code: string }) => p.code === "TRANSACTIONS").actions).toEqual(["VIEW", "CREATE", "EDIT", "DELETE", "EXPORT", "IMPORT"]);
 
     const custom = (await api().post("/api/v1/admin/profiles").set(admin.auth).send({ name: "Leitor" }).expect(201)).body;
