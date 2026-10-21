@@ -5,11 +5,11 @@ summary: Criar conta, entrar, conhecer o ecrã e o menu, escolher a moeda e come
 category: Começar
 order: 10
 ---
-Esta aplicação ajuda-o a saber **para onde vai o seu dinheiro**: regista o que entra e o que sai, mostra quanto tem em cada conta, ajuda a planear orçamentos e metas e avisa quando algo precisa da sua atenção.
+Esta aplicação ajuda a saber **para onde vai o seu dinheiro**: regista o que entra e o que sai, mostra quanto tem em cada conta, ajuda a planear orçamentos e metas e avisa quando algo precisa da sua atenção.
 
 ## Criar conta
 
-1. Abra a aplicação. Sem sessão iniciada, aparece o ecrã **Bem-vindo**.
+1. Abra a aplicação. Sem sessão iniciada, aparece o ecrã **Boas-vindas**.
 2. Escolha o separador **Criar conta**.
 3. Preencha **Nome**, **Email** e **Palavra-passe** (pelo menos 8 caracteres, ou o mínimo definido pelo administrador).
 4. Clique em **Criar conta**. Entra logo na aplicação.
@@ -20,7 +20,7 @@ A conta nova já traz **14 categorias** prontas (Salário, Supermercado, Renda e
 
 ## Entrar e sair
 
-1. No ecrã **Bem-vindo**, separador **Entrar**, escreva o **Email** e a **Palavra-passe** e clique em **Entrar**.
+1. No ecrã **Boas-vindas**, separador **Entrar**, escreva o **Email** e a **Palavra-passe** e clique em **Entrar**.
 2. Para sair, use o botão **Terminar sessão** (ícone de saída) no canto superior direito.
 
 A sessão dura alguns dias (definido pelo administrador); depois disso pede-lhe para entrar de novo. Se a conta tiver sido desactivada, aparece "Conta desactivada. Contacte o administrador."
