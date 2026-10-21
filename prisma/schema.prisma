@@ -83,6 +83,13 @@ enum FamilyLinkStatus {
   REVOKED
 }
 
+/// Tamanho do texto escolhido pelo utilizador (acessibilidade).
+enum TextSize {
+  NORMAL
+  LARGE
+  XLARGE
+}
+
 enum EmailKind {
   ALERT
   WEEKLY_SUMMARY
@@ -110,6 +117,10 @@ model User {
   profileId   String    @db.Uuid
   active      Boolean   @default(true)
   lastLoginAt DateTime?
+  /// Preferências de acessibilidade (sempre de quem inicia sessão, nunca da pessoa gerida).
+  textSize     TextSize @default(NORMAL)
+  highContrast Boolean  @default(false)
+  reduceMotion Boolean  @default(false)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -552,4 +563,28 @@ model Period {
   updatedById String?      @db.Uuid
 
   @@map("periods")
+}
+
+/// Tipo de plano de crescimento (carro, casa, negócio, investir…), configurado na administração.
+/// Alimenta o simulador e as propostas do módulo Crescer.
+model GrowthPlanType {
+  id            String   @id @default(uuid()) @db.Uuid
+  code          String   @unique
+  name          String
+  description   String
+  icon          String
+  color         String
+  /// Rendimento anual de referência (%) usado no simulador; 0 = dinheiro parado.
+  annualReturn  Decimal  @default(0) @db.Decimal(5, 2)
+  /// Prazo sugerido no simulador (meses).
+  defaultMonths Int      @default(12)
+  /// Dicas em markdown mostradas com o plano.
+  tips          String   @default("")
+  order         Int      @default(0)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([active, order])
+  @@map("growth_plan_types")
 }
