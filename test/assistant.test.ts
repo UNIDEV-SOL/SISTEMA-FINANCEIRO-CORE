@@ -93,8 +93,8 @@ describe("assistente — conversa (SSE)", () => {
     const { auth } = await signUp();
     const { events } = await chat(auth, { message: "Quanto gastei este mês?" });
     const answer = textOf(events);
-    expect(answer).toContain("Não consulto os seus números");
-    expect(answer).toContain("[Dashboard](/)");
+    expect(answer).toContain("Para um resumo das suas finanças, pergunte-me");
+    expect(answer).toContain("[Dashboard](/painel)");
     const config = await api().get("/api/v1/config/public").expect(200);
     expect(config.body.assistant).toEqual({ mode: "offline" });
   });
@@ -115,7 +115,7 @@ describe("assistente — conversa (SSE)", () => {
 
     const answer = textOf(events);
     expect(answer).toContain("[Orçamentos](/ajuda/orcamentos)");
-    expect(answer).not.toContain("Não consulto os seus números");
+    expect(answer).not.toContain("Para um resumo das suas finanças, pergunte-me");
 
     const conversationId = events[0].data.conversationId as string;
     const conversation = await prisma.assistantConversation.findUniqueOrThrow({ where: { id: conversationId }, include: { messages: { orderBy: { createdAt: "asc" } } } });
