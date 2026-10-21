@@ -72,7 +72,8 @@ export const assistantController = {
     let text = "";
     try {
       if (mode === "offline") {
-        text = await offlineAnswer(input.message);
+        // As perguntas sobre a situação financeira usam os números da pessoa gerida (X-Acting-As)
+        text = await offlineAnswer(input.message, owner.userId);
         for (const chunk of chunksOf(text)) {
           if (abort.signal.aborted) break;
           sse.send("delta", { text: chunk });
