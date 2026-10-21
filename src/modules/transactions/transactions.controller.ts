@@ -23,6 +23,11 @@ export const transactionsController = {
     res.json(await transactionsService.update(currentUserId(req), id, req.body));
   },
 
+  async confirm(req: Request, res: Response) {
+    const { id } = idParamSchema.parse(req.params);
+    res.json(await transactionsService.confirm(currentUserId(req), id));
+  },
+
   async remove(req: Request, res: Response) {
     const { id } = idParamSchema.parse(req.params);
     await transactionsService.remove(currentUserId(req), id);
