@@ -23,6 +23,8 @@ export const transactionInputSchema = z
     categoryId: optionalId,
     status: transactionStatusSchema.optional().default("CLEARED"),
     notes: optionalText(500),
+    /** Só na criação: referência do SMS de onde veio (evita registar a mesma mensagem duas vezes). */
+    importRef: z.string().trim().max(200).optional().openapi({ description: "Só na criação, a partir de um SMS (ver /transactions/import/preview)." }),
   })
   .openapi("TransactionInput");
 
@@ -50,6 +52,8 @@ export const transactionSchema = z
     categoryId: z.uuid().optional(),
     status: transactionStatusSchema,
     notes: z.string().optional(),
+    recurringId: z.uuid().optional().openapi({ description: "Gerada por esta transação recorrente." }),
+    attachments: z.number().int().openapi({ description: "Número de comprovativos (SMS, PDF, fotografias)." }),
     createdAt: z.string().openapi({ example: "2026-10-20T13:45:00.000Z" }),
   })
   .openapi("Transaction");
