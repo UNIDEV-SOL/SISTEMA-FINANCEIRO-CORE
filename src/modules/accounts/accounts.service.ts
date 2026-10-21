@@ -12,6 +12,7 @@ export const toAccountResponse = (a: Account, balance: Decimal): AccountResponse
   name: a.name,
   type: a.type,
   institution: a.institution ?? undefined,
+  number: a.number ?? undefined,
   color: a.color,
   initialBalance: toMoney(a.initialBalance),
   balance: toMoney(balance),
@@ -28,15 +29,16 @@ const fields = (input: AccountInput) => ({
   name: input.name,
   type: input.type,
   institution: input.institution ?? null,
+  number: input.number ?? null,
   color: input.color,
   initialBalance: input.initialBalance,
   includeInTotal: input.includeInTotal,
 });
 
 export const accountsService = {
-  /** Contas activas; `search` procura no nome e na instituição. Por omissão, pela ordem de criação. */
-  async list(userId: string, page: PageRequest<(typeof ACCOUNT_SORTS)[number]>): Promise<Page<AccountResponse>> {
-    const where: Prisma.AccountWhereInput = { userId, archived: false };
+  /** Contas activas (ou só as arquivadas); `search` procura no nome e na instituição. Por omissão, pela ordem de criação. */
+  async list(userId: string, page: PageRequest<(typeof ACCOUNT_SORTS)[number]>, archived = false): Promise<Page<AccountResponse>> {
+    const where: Prisma.AccountWhereInput = { userId, archived };
     if (page.search)
       where.OR = [{ name: { contains: page.search, mode: "insensitive" } }, { institution: { contains: page.search, mode: "insensitive" } }];
     const [accounts, total, balances] = await Promise.all([
@@ -69,5 +71,11 @@ export const accountsService = {
   async archive(userId: string, id: string): Promise<void> {
     await this.findOwned(userId, id);
     await prisma.account.update({ where: { id }, data: { archived: true } });
+  },
+
+  /** Desarquiva: a conta volta às listas, com o saldo e as transações de sempre. */
+  async restore(userId: string, id: string): Promise<AccountResponse> {
+    await this.findOwned(userId, id, { includeArchived: true });
+    return withBalance(await prisma.account.update({ where: { id }, data: { archived: false } }));
   },
 };
