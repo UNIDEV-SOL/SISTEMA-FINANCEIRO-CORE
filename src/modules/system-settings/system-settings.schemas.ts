@@ -50,7 +50,7 @@ export const settingGroupSchema = z
 
 export const publicConfigSchema = z
   .object({
-    settings: z.record(z.string(), z.unknown()).openapi({ example: { "app.name": "Finanças", "pagination.defaultSize": 20 } }),
+    settings: z.record(z.string(), z.unknown()).openapi({ example: { "app.name": "Finanças Smart", "pagination.defaultSize": 20 } }),
     currencies: z.array(currencySchema),
     assistant: z.object({ mode: z.enum(["ai", "offline"]) }),
   })
