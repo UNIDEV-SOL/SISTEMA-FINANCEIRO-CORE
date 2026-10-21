@@ -2,6 +2,7 @@ import { app } from "./app";
 import { env } from "./config/env";
 import { scheduleDailyEmails } from "./modules/alerts/alerts.job";
 import { schedulePeriodsRollover } from "./modules/periods/periods.job";
+import { scheduleRecurring } from "./modules/recurring/recurring.job";
 import { seedReferenceData } from "./seed/reference-data";
 import { prisma } from "./shared/db/prisma";
 import { logger } from "./shared/logger";
@@ -21,11 +22,13 @@ async function start() {
 
   const emailsJob = scheduleDailyEmails();
   const periodsJob = schedulePeriodsRollover();
+  const recurringJob = scheduleRecurring();
 
   async function shutdown(signal: string) {
     logger.info(`${signal} recebido, a terminar`);
     await emailsJob.stop();
     await periodsJob.stop();
+    await recurringJob.stop();
     server.close(async () => {
       await prisma.$disconnect();
       process.exit(0);
