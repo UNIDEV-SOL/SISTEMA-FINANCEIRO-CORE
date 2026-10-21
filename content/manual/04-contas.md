@@ -40,4 +40,4 @@ Contas com **Incluir no património total** desligado mostram "Fora do patrimón
 
 Use **⋯ › Arquivar** numa conta que já não usa. A conta deixa de aparecer nas listas e nos selectores, mas **as transações antigas mantêm-se** (e continuam nos relatórios).
 
-> Não é possível apagar uma conta nem, por agora, ver ou restaurar as arquivadas. Arquive só contas que fechou.
+> Não é possível apagar uma conta. As arquivadas aparecem em **Contas › Arquivadas**, de onde as pode **restaurar** com o saldo e as transações de sempre.

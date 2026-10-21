@@ -4,6 +4,8 @@ import { addDays, currentYearMonth, daysBetween, fromIsoDate, monthRange, todayI
 import { formatDayMonth, formatMoney, formatMonth, formatPercent } from "../../shared/lib/format";
 import { ratio, sum, ZERO } from "../../shared/lib/money";
 import { accountBalances } from "../accounts/accounts.ledger";
+import { forecastService } from "../forecast/forecast.service";
+import { appSettings } from "../../shared/settings/app-settings";
 import type { Alert } from "./alerts.types";
 
 const SEVERITY_ORDER = { critical: 0, warning: 1, info: 2 };
@@ -124,6 +126,24 @@ export async function computeAlerts(userId: string, settings: AlertSettings, cur
         message: `Faltam ${money(goal.target.sub(saved))} até ${formatDayMonth(toIsoDate(goal.deadline))}.`,
         date: today,
         href: "/metas",
+      });
+    }
+  }
+
+  // Próximos meses no vermelho (a Previsão), com tempo para agir: o mês actual e os `forecast.alertMonths` seguintes
+  if (settings.forecastAlerts) {
+    const [forecast, ahead] = await Promise.all([forecastService.forecast(userId), appSettings.get("forecast.alertMonths")]);
+    for (const m of forecast.months.slice(0, ahead + 1)) {
+      if (m.status !== "NEGATIVE") continue;
+      const atRisk = Number(m.expenses.commitments) > 0;
+      alerts.push({
+        id: `forecast:${m.month}:negative`,
+        kind: "FORECAST",
+        severity: atRisk ? "critical" : "warning",
+        title: `${formatMonth(m.month).replace(/^./, (c) => c.toUpperCase())} vai ficar no vermelho`,
+        message: m.notes.join(" "),
+        date: today,
+        href: "/previsao",
       });
     }
   }

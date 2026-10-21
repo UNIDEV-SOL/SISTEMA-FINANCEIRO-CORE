@@ -8,7 +8,7 @@ describe("configuração pública", () => {
     await prisma.currency.update({ where: { code: "ZAR" }, data: { active: false } });
     const { body } = await api().get("/api/v1/config/public").expect(200);
     expect(body.settings).toMatchObject({
-      "app.name": "Finanças",
+      "app.name": "Finanças Smart",
       "auth.registrationEnabled": true,
       "auth.passwordMinLength": 8,
       "locale.defaultCurrency": "MZN",
@@ -28,7 +28,7 @@ describe("admin — parâmetros", () => {
   it("lista agrupada, com as opções dinâmicas calculadas", async () => {
     const admin = await signUpAs("SUPER_ADMIN");
     const groups = (await api().get("/api/v1/admin/settings").set(admin.auth).expect(200)).body;
-    expect(groups.map((g: { group: string }) => g.group)).toEqual(["app", "auth", "locale", "pagination", "alerts", "emails", "family", "assistant", "help", "periods", "site"]);
+    expect(groups.map((g: { group: string }) => g.group)).toEqual(["app", "auth", "locale", "pagination", "alerts", "emails", "family", "assistant", "help", "periods", "growth", "recurring", "forecast", "advisor", "attachments", "site"]);
     expect(groups[1]).toMatchObject({ label: "Autenticação" });
     const currency = groups[2].items[0];
     expect(currency).toMatchObject({ key: "locale.defaultCurrency", type: "SELECT", value: "MZN", public: true, updatedBy: null });

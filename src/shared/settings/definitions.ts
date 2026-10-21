@@ -27,6 +27,22 @@ export interface SettingValues {
   "help.showFaq": boolean;
   "periods.autoCreate": boolean;
   "periods.autoClosePrevious": boolean;
+  "growth.lookbackMonths": number;
+  "growth.emergencyMonths": number;
+  "growth.targetSavingsRate": number;
+  "growth.wantsMaxRate": number;
+  "growth.comfortableShare": number;
+  "recurring.daysAhead": number;
+  "forecast.horizonMonths": number;
+  "forecast.tightRate": number;
+  "forecast.includeVariableIncome": boolean;
+  "forecast.alertMonths": number;
+  "advisor.trendMonths": number;
+  "advisor.fastPaceRate": number;
+  "advisor.paydayShare": number;
+  "advisor.paydayDays": number;
+  "attachments.maxFileMb": number;
+  "attachments.maxPerTransaction": number;
   "site.headline": string;
   "site.subheadline": string;
   "site.ctaLabel": string;
@@ -81,6 +97,11 @@ export const SETTING_GROUPS: { group: string; label: string }[] = [
   { group: "assistant", label: "Assistente" },
   { group: "help", label: "Ajuda" },
   { group: "periods", label: "Períodos" },
+  { group: "growth", label: "Crescimento" },
+  { group: "recurring", label: "Recorrentes" },
+  { group: "forecast", label: "Previsão" },
+  { group: "advisor", label: "Conselheiro" },
+  { group: "attachments", label: "Comprovativos" },
   { group: "site", label: "Site público" },
 ];
 
@@ -91,7 +112,7 @@ const def = <K extends SettingKey>(d: SettingDefinition<K>) => d;
  * Mudar um valor aqui não altera bases já criadas — isso faz-se no painel.
  */
 export const SETTING_DEFINITIONS = [
-  def({ key: "app.name", value: "Finanças", type: "STRING", group: "app", label: "Nome da aplicação", public: true, constraints: { maxLength: 60 } }),
+  def({ key: "app.name", value: "Finanças Smart", type: "STRING", group: "app", label: "Nome da aplicação", public: true, constraints: { maxLength: 60 } }),
   def({ key: "app.tagline", value: "Controlo pessoal", type: "STRING", group: "app", label: "Subtítulo", public: true, constraints: { maxLength: 120 } }),
   def({
     key: "app.supportEmail",
@@ -259,6 +280,148 @@ export const SETTING_DEFINITIONS = [
     group: "periods",
     label: "Fechar o ano anterior automaticamente",
     description: "Quando o novo ano é aberto automaticamente, o anterior fica só para consulta.",
+  }),
+  def({
+    key: "growth.lookbackMonths",
+    value: 6,
+    type: "NUMBER",
+    group: "growth",
+    label: "Meses usados nas médias",
+    description: "Meses completos (antes do actual) usados para calcular a receita, a despesa e a poupança médias.",
+    constraints: { min: 1, max: 24, integer: true },
+  }),
+  def({
+    key: "growth.emergencyMonths",
+    value: 6,
+    type: "NUMBER",
+    group: "growth",
+    label: "Fundo de emergência (meses de despesa)",
+    description: "Quantos meses de despesa a poupança deve cobrir antes de propor investimentos.",
+    constraints: { min: 1, max: 24, integer: true },
+  }),
+  def({
+    key: "growth.targetSavingsRate",
+    value: 20,
+    type: "NUMBER",
+    group: "growth",
+    label: "Taxa de poupança recomendada (%)",
+    description: "Parte da receita que se recomenda guardar todos os meses (regra 50/30/20).",
+    constraints: { min: 1, max: 90, integer: true },
+  }),
+  def({
+    key: "growth.wantsMaxRate",
+    value: 30,
+    type: "NUMBER",
+    group: "growth",
+    label: "Máximo em desejos (%)",
+    description: "Parte da receita a partir da qual os gastos em desejos (lazer, compras…) geram uma proposta de corte.",
+    constraints: { min: 5, max: 90, integer: true },
+  }),
+  def({
+    key: "growth.comfortableShare",
+    value: 50,
+    type: "NUMBER",
+    group: "growth",
+    label: "Esforço confortável de um plano (%)",
+    description: "Um plano é confortável se a prestação mensal usar até esta parte da poupança média.",
+    constraints: { min: 10, max: 100, integer: true },
+  }),
+  def({
+    key: "recurring.daysAhead",
+    value: 7,
+    type: "NUMBER",
+    group: "recurring",
+    label: "Antecedência das recorrentes (dias)",
+    description: "Quantos dias antes da data cada transação recorrente aparece como prevista (entra nos alertas de contas a pagar).",
+    constraints: { min: 0, max: 60, integer: true },
+  }),
+  def({
+    key: "forecast.horizonMonths",
+    value: 12,
+    type: "NUMBER",
+    group: "forecast",
+    label: "Meses da previsão",
+    description: "Quantos meses à frente (a contar com o actual) a Previsão mostra.",
+    constraints: { min: 3, max: 24, integer: true },
+  }),
+  def({
+    key: "forecast.tightRate",
+    value: 10,
+    type: "NUMBER",
+    group: "forecast",
+    label: "Margem de segurança (%)",
+    description: "Um mês fica apertado se sobrar menos do que esta parte da receita. A poupança das metas respeita esta margem.",
+    constraints: { min: 0, max: 50, integer: true },
+  }),
+  def({
+    key: "forecast.includeVariableIncome",
+    value: true,
+    type: "BOOLEAN",
+    group: "forecast",
+    label: "Contar com as receitas variáveis",
+    description: "Inclui na previsão a média das receitas que não são recorrentes (negócios extra, vendas). Desligado, a previsão é mais prudente.",
+  }),
+  def({
+    key: "forecast.alertMonths",
+    value: 3,
+    type: "NUMBER",
+    group: "forecast",
+    label: "Meses vigiados pelos alertas",
+    description: "Avisa quando um destes próximos meses (além do actual) fica no vermelho na Previsão.",
+    constraints: { min: 0, max: 12, integer: true },
+  }),
+  def({
+    key: "advisor.trendMonths",
+    value: 3,
+    type: "NUMBER",
+    group: "advisor",
+    label: "Meses para medir o crescimento",
+    description: "O conselheiro compara o património de hoje com o do fim deste número de meses atrás.",
+    constraints: { min: 1, max: 24, integer: true },
+  }),
+  def({
+    key: "advisor.fastPaceRate",
+    value: 110,
+    type: "NUMBER",
+    group: "advisor",
+    label: "Ritmo de gastos acelerado (%)",
+    description: "Acima desta parte do gasto normal para o dia do mês, o conselheiro avisa que o mês está a correr depressa.",
+    constraints: { min: 100, max: 200, integer: true },
+  }),
+  def({
+    key: "advisor.paydayShare",
+    value: 40,
+    type: "NUMBER",
+    group: "advisor",
+    label: "Receita que conta como salário (%)",
+    description: "Uma receita a partir desta parte da receita média mensal abre o plano do salário: contas a pagar, poupança e dia-a-dia até ao próximo.",
+    constraints: { min: 5, max: 100, integer: true },
+  }),
+  def({
+    key: "advisor.paydayDays",
+    value: 7,
+    type: "NUMBER",
+    group: "advisor",
+    label: "Dias a mostrar o plano do salário",
+    description: "Durante quantos dias depois de entrar o salário o Dashboard mostra o plano.",
+    constraints: { min: 1, max: 31, integer: true },
+  }),
+  def({
+    key: "attachments.maxFileMb",
+    value: 5,
+    type: "NUMBER",
+    group: "attachments",
+    label: "Tamanho máximo de um comprovativo (MB)",
+    description: "PDF ou fotografia anexados a uma transação.",
+    constraints: { min: 1, max: 20, integer: true },
+  }),
+  def({
+    key: "attachments.maxPerTransaction",
+    value: 10,
+    type: "NUMBER",
+    group: "attachments",
+    label: "Comprovativos por transação",
+    constraints: { min: 1, max: 50, integer: true },
   }),
   def({
     key: "site.headline",

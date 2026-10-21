@@ -1,5 +1,5 @@
 import { documentPath } from "../../shared/docs/registry";
-import { authUserSchema, loginSchema, registerSchema, sessionSchema } from "./auth.schemas";
+import { authUserSchema, loginSchema, preferencesSchema, registerSchema, sessionSchema } from "./auth.schemas";
 
 const tag = "Autenticação";
 
@@ -34,4 +34,14 @@ documentPath({
   summary: "Utilizador da sessão actual",
   description: "Com o cabeçalho `X-Acting-As`, `actingAs` traz a pessoa por quem está a agir (null se a ligação não for válida).",
   response: { schema: authUserSchema },
+});
+
+documentPath({
+  method: "put",
+  path: "/auth/preferences",
+  tag,
+  summary: "Preferências de acessibilidade (tamanho do texto, contraste, animações)",
+  description: "Sempre de quem iniciou sessão, mesmo a agir por outra pessoa. Os campos omitidos ficam como estão.",
+  body: preferencesSchema,
+  response: { schema: preferencesSchema },
 });

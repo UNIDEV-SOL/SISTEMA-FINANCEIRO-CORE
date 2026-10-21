@@ -15,6 +15,7 @@ export const toAlertSettingsResponse = (s: AlertSettings): AlertSettingsResponse
   lowBalanceAlerts: s.lowBalanceAlerts,
   lowBalanceAmount: toMoney(s.lowBalanceAmount),
   goalAlerts: s.goalAlerts,
+  forecastAlerts: s.forecastAlerts,
   weeklySummary: s.weeklySummary,
   monthlyReport: s.monthlyReport,
 });

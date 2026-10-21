@@ -13,6 +13,7 @@ describe("auth", () => {
       active: true,
       profile: { id: expect.any(String), code: "USER", name: "Utilizador", superAdmin: false },
       actingAs: null,
+      preferences: { textSize: "NORMAL", highContrast: false, reduceMotion: false },
     });
 
     const categories = await api().get("/api/v1/categories").set(auth).expect(200);

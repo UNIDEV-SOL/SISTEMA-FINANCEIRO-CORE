@@ -57,7 +57,18 @@ export const authUserSchema = z
     actingAs: actingAsSchema
       .nullable()
       .openapi({ description: "Pessoa por quem está a agir (cabeçalho X-Acting-As válido), ou null. `via`: ligação familiar ou permissão de administração (ADMIN_USER_DATA)." }),
+    preferences: z.object({ textSize: z.enum(["NORMAL", "LARGE", "XLARGE"]), highContrast: z.boolean(), reduceMotion: z.boolean() }),
   })
   .openapi("AuthUser");
+
+export const preferencesSchema = z
+  .object({
+    textSize: z.enum(["NORMAL", "LARGE", "XLARGE"], { error: "Escolha um tamanho de texto." }).optional(),
+    highContrast: z.boolean({ error: "Valor inválido." }).optional(),
+    reduceMotion: z.boolean({ error: "Valor inválido." }).optional(),
+  })
+  .openapi("Preferences", { description: "Acessibilidade. Campos omitidos ficam como estão." });
+
+export type PreferencesInput = z.infer<typeof preferencesSchema>;
 
 export const sessionSchema = z.object({ token: z.string(), user: authUserSchema }).openapi("Session");

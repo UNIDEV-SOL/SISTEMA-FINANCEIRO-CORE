@@ -7,7 +7,7 @@ beforeEach(async () => {
   await flushAudit();
   // Os dados de referência também são apagados: os testes alteram parâmetros e permissões
   await prisma.$executeRawUnsafe(
-    `TRUNCATE "users", "audit_logs", "profile_functionalities", "profiles", "functionalities", "system_settings", "currencies", "help_articles", "faqs", "periods" CASCADE`,
+    `TRUNCATE "users", "audit_logs", "profile_functionalities", "profiles", "functionalities", "system_settings", "currencies", "help_articles", "faqs", "periods", "growth_plan_types" CASCADE`,
   );
   await seedReferenceData();
 });

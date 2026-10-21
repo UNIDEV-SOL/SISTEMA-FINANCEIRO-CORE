@@ -17,7 +17,7 @@ const IMPORT = /\/(import|upload)(\/|$)/;
 // POSTs que só lêem (pesquisa, conversa com o assistente)
 const READ_LIKE_POST = /\/(search|chat)$/;
 // POSTs que alteram algo que já existe
-const EDIT_LIKE_POST = /\/(password|read|read-all)$/;
+const EDIT_LIKE_POST = /\/(password|read|read-all|skip|restore|confirm)$/;
 
 /** Caminho da API sem o prefixo `/api/v1` nem barra final, ex.: "/transactions/123". */
 export function apiPathOf(req: Request): string {
