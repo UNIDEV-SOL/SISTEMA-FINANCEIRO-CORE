@@ -7,27 +7,549 @@ datasource db {
   provider = "postgresql"
 }
 
-model User {
-  id                    String   @id @default(uuid())
-  fullName              String
-  email                 String   @unique
-  password              String
-  code                  String   @unique
-  nuit                  String   @unique
-  msisdn                String   @unique
-  address               String
-  dateOfBirth           DateTime?
-  gender                String?
-  role                  String   @default("Cliente")
-  notes                 String?
-  isActive              Boolean  @default(true)
-  registrationDate      DateTime @default(now())
-  nationality           String?
-  maritalStatus         String?
-  occupation            String?
-  preferredPaymentMethod String?
-  loyaltyPoints         Int      @default(0)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+enum AccountType {
+  BANK
+  MOBILE_WALLET
+  CASH
+  SAVINGS
+  INVESTMENT
 }
 
+enum CategoryKind {
+  INCOME
+  EXPENSE
+}
+
+enum BudgetGroup {
+  NEEDS
+  WANTS
+  SAVINGS
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+enum TransactionStatus {
+  CLEARED
+  PENDING
+}
+
+enum InvestmentType {
+  TERM_DEPOSIT
+  TREASURY_BONDS
+  CORPORATE_BONDS
+  STOCKS
+  FUNDS
+  REAL_ESTATE
+  OTHER
+}
+
+/// Acções sobre uma funcionalidade; o método HTTP determina qual é exigida.
+enum Action {
+  VIEW
+  CREATE
+  EDIT
+  DELETE
+  EXPORT
+  IMPORT
+}
+
+enum SettingType {
+  STRING
+  NUMBER
+  BOOLEAN
+  SELECT
+  TEXT
+  /// Lista ou objecto (ex.: `site.faq`); a forma é validada pelo `constraints.shape`.
+  JSON
+}
+
+enum PeriodStatus {
+  OPEN
+  CLOSED
+}
+
+enum FamilyAccess {
+  VIEW
+  MANAGE
+}
+
+enum FamilyLinkStatus {
+  PENDING
+  ACTIVE
+  REVOKED
+}
+
+enum EmailKind {
+  ALERT
+  WEEKLY_SUMMARY
+  MONTHLY_REPORT
+}
+
+enum AssistantRole {
+  user
+  assistant
+}
+
+enum EmailStatus {
+  SENT
+  FAILED
+}
+
+/// As definições do front (`/settings`) são { name, email, currency } deste modelo.
+model User {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String
+  email       String    @unique
+  password    String
+  /// Código da moeda (tabela `currencies`).
+  currency    String    @db.VarChar(3)
+  profileId   String    @db.Uuid
+  active      Boolean   @default(true)
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  currencyRef Currency @relation(fields: [currency], references: [code], onDelete: Restrict)
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Restrict)
+
+  alertSettings AlertSettings?
+  accounts      Account[]
+  categories    Category[]
+  transactions  Transaction[]
+  budgets       Budget[]
+  goals         Goal[]
+  investments   Investment[]
+  alertReads    AlertRead[]
+  emails        EmailLog[]
+  dependents    FamilyLink[]  @relation("FamilyGuardian")
+  guardians     FamilyLink[]  @relation("FamilyMember")
+  conversations AssistantConversation[]
+
+  @@index([profileId])
+  @@map("users")
+}
+
+model AlertSettings {
+  userId           String  @id @db.Uuid
+  email            String
+  budgetThreshold  Int     @default(80)
+  budgetAlerts     Boolean @default(true)
+  billAlerts       Boolean @default(true)
+  billDaysAhead    Int     @default(3)
+  lowBalanceAlerts Boolean @default(true)
+  lowBalanceAmount Decimal @default(1000) @db.Decimal(15, 2)
+  goalAlerts       Boolean @default(true)
+  weeklySummary    Boolean @default(false)
+  monthlyReport    Boolean @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("alert_settings")
+}
+
+/// O saldo não é guardado: é o saldo inicial mais as transações liquidadas.
+model Account {
+  id             String      @id @default(uuid()) @db.Uuid
+  userId         String      @db.Uuid
+  name           String
+  type           AccountType
+  institution    String?
+  color          String
+  initialBalance Decimal     @default(0) @db.Decimal(15, 2)
+  includeInTotal Boolean     @default(true)
+  archived       Boolean     @default(false)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  outgoing Transaction[] @relation("TransactionAccount")
+  incoming Transaction[] @relation("TransactionDestination")
+  goals    Goal[]
+
+  @@index([userId, archived])
+  @@map("accounts")
+}
+
+model Category {
+  id     String       @id @default(uuid()) @db.Uuid
+  userId String       @db.Uuid
+  name   String
+  kind   CategoryKind
+  icon   String
+  color  String
+  /// Só nas despesas.
+  group     BudgetGroup?
+  /// As listas seguem a ordem de criação.
+  createdAt DateTime     @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  budget       Budget?
+
+  @@unique([userId, kind, name])
+  @@map("categories")
+}
+
+model Transaction {
+  id                   String            @id @default(uuid()) @db.Uuid
+  userId               String            @db.Uuid
+  type                 TransactionType
+  description          String
+  /// Sempre positivo; o sentido vem do tipo.
+  amount               Decimal           @db.Decimal(15, 2)
+  date                 DateTime          @db.Date
+  accountId            String            @db.Uuid
+  /// Só nas transferências.
+  destinationAccountId String?           @db.Uuid
+  /// Só nas receitas e despesas.
+  categoryId           String?           @db.Uuid
+  status               TransactionStatus @default(CLEARED)
+  notes                String?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account            Account   @relation("TransactionAccount", fields: [accountId], references: [id], onDelete: Restrict)
+  destinationAccount Account?  @relation("TransactionDestination", fields: [destinationAccountId], references: [id], onDelete: Restrict)
+  category           Category? @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@index([userId, date])
+  @@index([accountId, status])
+  @@index([destinationAccountId, status])
+  @@index([categoryId, date])
+  @@map("transactions")
+}
+
+/// Limite mensal de uma categoria de despesa; repete-se todos os meses até ser alterado.
+model Budget {
+  categoryId String  @id @db.Uuid
+  userId     String  @db.Uuid
+  limit      Decimal @db.Decimal(15, 2)
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("budgets")
+}
+
+model Goal {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  name      String
+  icon      String    @default("piggy")
+  color     String
+  target    Decimal   @db.Decimal(15, 2)
+  deadline  DateTime? @db.Date
+  /// Conta onde o dinheiro está guardado (só informativo).
+  accountId String?   @db.Uuid
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account       Account?           @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  contributions GoalContribution[]
+
+  @@index([userId])
+  @@map("goals")
+}
+
+model GoalContribution {
+  id        String   @id @default(uuid()) @db.Uuid
+  goalId    String   @db.Uuid
+  /// Negativo quando se retira dinheiro da meta.
+  amount    Decimal  @db.Decimal(15, 2)
+  date      DateTime @db.Date
+  note      String?
+  createdAt DateTime @default(now())
+
+  goal Goal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@index([goalId, date])
+  @@map("goal_contributions")
+}
+
+model Investment {
+  id           String         @id @default(uuid()) @db.Uuid
+  userId       String         @db.Uuid
+  name         String
+  type         InvestmentType
+  institution  String?
+  invested     Decimal        @db.Decimal(15, 2)
+  /// Taxa anual contratada, em %.
+  annualRate   Decimal?       @db.Decimal(5, 2)
+  startDate    DateTime       @db.Date
+  maturityDate DateTime?      @db.Date
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  valuations Valuation[]
+
+  @@index([userId])
+  @@map("investments")
+}
+
+model Valuation {
+  id           String   @id @default(uuid()) @db.Uuid
+  investmentId String   @db.Uuid
+  date         DateTime @db.Date
+  value        Decimal  @db.Decimal(15, 2)
+
+  investment Investment @relation(fields: [investmentId], references: [id], onDelete: Cascade)
+
+  /// Uma avaliação por dia: a nova substitui a do mesmo dia.
+  @@unique([investmentId, date])
+  @@map("valuations")
+}
+
+/// Os alertas são recalculados a cada pedido; só se guarda o estado "lido", pelo id determinístico.
+model AlertRead {
+  userId  String   @db.Uuid
+  alertId String
+  readAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, alertId])
+  @@map("alert_reads")
+}
+
+/// Emails enviados; `ref` (id do alerta, "weekly:2026-W43", "monthly:2026-10") evita reenvios.
+model EmailLog {
+  id        String      @id @default(uuid()) @db.Uuid
+  userId    String      @db.Uuid
+  kind      EmailKind
+  ref       String
+  to        String
+  subject   String
+  status    EmailStatus
+  error     String?
+  createdAt DateTime    @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, kind, ref])
+  @@map("email_logs")
+}
+
+/// Moedas disponíveis; substitui o antigo enum. Desactivar em vez de apagar quando está em uso.
+model Currency {
+  code     String  @id @db.VarChar(3)
+  name     String
+  symbol   String
+  decimals Int     @default(2)
+  active   Boolean @default(true)
+  order    Int     @default(0)
+
+  users User[]
+
+  @@map("currencies")
+}
+
+/// Perfil de acesso. `superAdmin` ignora as permissões; `system` não pode ser apagado.
+model Profile {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique
+  name        String
+  description String?
+  superAdmin  Boolean  @default(false)
+  system      Boolean  @default(false)
+  /// Perfil dado a quem se regista (só um).
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+  permissions ProfileFunctionality[]
+
+  @@map("profiles")
+}
+
+/// Entrada do menu e unidade de permissão. As secções não têm `path`.
+model Functionality {
+  id           String   @id @default(uuid()) @db.Uuid
+  code         String   @unique
+  label        String
+  path         String?
+  icon         String?
+  order        Int      @default(0)
+  parentId     String?  @db.Uuid
+  /// Padrões das rotas da API protegidas, ex.: "/transactions/**".
+  apiPaths     String[] @default([])
+  /// Exige permissão também para leituras (VIEW).
+  protectReads Boolean  @default(false)
+  active       Boolean  @default(true)
+
+  parent      Functionality?         @relation("FunctionalityTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children    Functionality[]        @relation("FunctionalityTree")
+  permissions ProfileFunctionality[]
+
+  @@index([parentId])
+  @@map("functionalities")
+}
+
+model ProfileFunctionality {
+  profileId       String   @db.Uuid
+  functionalityId String   @db.Uuid
+  actions         Action[]
+
+  profile       Profile       @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  functionality Functionality @relation(fields: [functionalityId], references: [id], onDelete: Restrict)
+
+  @@id([profileId, functionalityId])
+  @@map("profile_functionalities")
+}
+
+/// Parâmetros do sistema, editáveis no painel de administração.
+model SystemSetting {
+  key         String      @id
+  value       Json
+  type        SettingType
+  group       String
+  label       String
+  description String?
+  /// SELECT: [{ value, label }].
+  options     Json?
+  /// Regras extra: { min, max, integer, maxLength, source: "currencies" | "profiles" }.
+  constraints Json?
+  /// Visível sem sessão em `GET /config/public`.
+  public      Boolean     @default(false)
+  order       Int         @default(0)
+  updatedAt   DateTime    @updatedAt
+  /// Sem FK: o histórico não depende de o utilizador existir.
+  updatedById String?     @db.Uuid
+
+  @@map("system_settings")
+}
+
+/// Responsável (guardian) que ajuda a gerir as finanças de outra pessoa (member).
+model FamilyLink {
+  id          String           @id @default(uuid()) @db.Uuid
+  guardianId  String           @db.Uuid
+  memberId    String           @db.Uuid
+  access      FamilyAccess
+  status      FamilyLinkStatus
+  createdAt   DateTime         @default(now())
+  respondedAt DateTime?
+
+  guardian User @relation("FamilyGuardian", fields: [guardianId], references: [id], onDelete: Cascade)
+  member   User @relation("FamilyMember", fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([guardianId, memberId])
+  @@index([memberId, status])
+  @@map("family_links")
+}
+
+/// Registo de auditoria. Sem FKs: sobrevive à remoção dos utilizadores.
+model AuditLog {
+  id                String   @id @default(uuid()) @db.Uuid
+  actorId           String?  @db.Uuid
+  actorName         String?
+  actingAsId        String?  @db.Uuid
+  /// LOGIN, LOGIN_FAILED, CREATE, EDIT, DELETE, IMPORT, EXPORT, ACCESS_DENIED, VIEW_AS.
+  action            String
+  method            String
+  path              String
+  statusCode        Int
+  functionalityCode String?
+  ip                String?
+  userAgent         String?
+  durationMs        Int
+  /// Corpo do pedido com segredos mascarados.
+  details           Json?
+  createdAt         DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+  @@map("audit_logs")
+}
+
+/// Artigo do manual de utilizador (markdown), editável no painel.
+model HelpArticle {
+  id        String   @id @default(uuid()) @db.Uuid
+  slug      String   @unique
+  title     String
+  summary   String
+  content   String
+  category  String
+  order     Int      @default(0)
+  published Boolean  @default(true)
+  /// Origem no seed (`content/manual/<ficheiro>`); o seed só cria o que falta e nunca sobrescreve.
+  seedKey   String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, category, order])
+  @@map("help_articles")
+}
+
+/// Pergunta frequente (resposta em markdown).
+model Faq {
+  id        String   @id @default(uuid()) @db.Uuid
+  question  String
+  answer    String
+  category  String
+  order     Int      @default(0)
+  published Boolean  @default(true)
+  seedKey   String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, category, order])
+  @@map("faqs")
+}
+
+/// Conversa com o assistente, sempre do utilizador efectivo (respeita o X-Acting-As).
+model AssistantConversation {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  /// Quem iniciou sessão quando a conversa foi criada (o responsável, se estava a agir por outra pessoa).
+  actorId   String?  @db.Uuid
+  title     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages AssistantMessage[]
+
+  @@index([userId, updatedAt])
+  @@map("assistant_conversations")
+}
+
+model AssistantMessage {
+  id             String        @id @default(uuid()) @db.Uuid
+  conversationId String        @db.Uuid
+  role           AssistantRole
+  text           String
+  /// Blocos completos da API (incluindo tool_use/tool_result) para reconstruir o histórico.
+  content        Json?
+  /// Mensagens do utilizador contam para o limite diário de quem as enviou.
+  actorId        String?       @db.Uuid
+  createdAt      DateTime      @default(now())
+
+  conversation AssistantConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([role, createdAt])
+  @@map("assistant_messages")
+}
+
+/// Ano de calendário. Só um é o corrente (índice parcial único na migração);
+/// só se escreve em registos com data num ano OPEN.
+model Period {
+  year        Int          @id
+  status      PeriodStatus
+  isCurrent   Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  /// Sem FK: o histórico não depende de o utilizador existir.
+  updatedById String?      @db.Uuid
+
+  @@map("periods")
+}
