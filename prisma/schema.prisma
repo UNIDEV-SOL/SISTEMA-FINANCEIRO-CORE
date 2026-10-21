@@ -37,6 +37,17 @@ enum TransactionStatus {
   PENDING
 }
 
+enum AttachmentKind {
+  MESSAGE
+  FILE
+}
+
+enum RecurrenceFrequency {
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
 enum InvestmentType {
   TERM_DEPOSIT
   TREASURY_BONDS
@@ -108,21 +119,21 @@ enum EmailStatus {
 
 /// As definições do front (`/settings`) são { name, email, currency } deste modelo.
 model User {
-  id          String    @id @default(uuid()) @db.Uuid
-  name        String
-  email       String    @unique
-  password    String
+  id           String    @id @default(uuid()) @db.Uuid
+  name         String
+  email        String    @unique
+  password     String
   /// Código da moeda (tabela `currencies`).
-  currency    String    @db.VarChar(3)
-  profileId   String    @db.Uuid
-  active      Boolean   @default(true)
-  lastLoginAt DateTime?
+  currency     String    @db.VarChar(3)
+  profileId    String    @db.Uuid
+  active       Boolean   @default(true)
+  lastLoginAt  DateTime?
   /// Preferências de acessibilidade (sempre de quem inicia sessão, nunca da pessoa gerida).
-  textSize     TextSize @default(NORMAL)
-  highContrast Boolean  @default(false)
-  reduceMotion Boolean  @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  textSize     TextSize  @default(NORMAL)
+  highContrast Boolean   @default(false)
+  reduceMotion Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   currencyRef Currency @relation(fields: [currency], references: [code], onDelete: Restrict)
   profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Restrict)
@@ -131,13 +142,14 @@ model User {
   accounts      Account[]
   categories    Category[]
   transactions  Transaction[]
+  recurring     RecurringTransaction[]
   budgets       Budget[]
   goals         Goal[]
   investments   Investment[]
   alertReads    AlertRead[]
   emails        EmailLog[]
-  dependents    FamilyLink[]  @relation("FamilyGuardian")
-  guardians     FamilyLink[]  @relation("FamilyMember")
+  dependents    FamilyLink[]            @relation("FamilyGuardian")
+  guardians     FamilyLink[]            @relation("FamilyMember")
   conversations AssistantConversation[]
 
   @@index([profileId])
@@ -154,6 +166,8 @@ model AlertSettings {
   lowBalanceAlerts Boolean @default(true)
   lowBalanceAmount Decimal @default(1000) @db.Decimal(15, 2)
   goalAlerts       Boolean @default(true)
+  /// Aviso quando a Previsão mostra um mês no vermelho nos próximos meses.
+  forecastAlerts   Boolean @default(true)
   weeklySummary    Boolean @default(false)
   monthlyReport    Boolean @default(true)
 
@@ -169,6 +183,8 @@ model Account {
   name           String
   type           AccountType
   institution    String?
+  /// Número da conta no banco ou da carteira móvel (reconhece a conta ao importar SMS e comprovativos).
+  number         String?
   color          String
   initialBalance Decimal     @default(0) @db.Decimal(15, 2)
   includeInTotal Boolean     @default(true)
@@ -176,29 +192,32 @@ model Account {
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
 
-  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  outgoing Transaction[] @relation("TransactionAccount")
-  incoming Transaction[] @relation("TransactionDestination")
-  goals    Goal[]
+  user              User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  outgoing          Transaction[]          @relation("TransactionAccount")
+  incoming          Transaction[]          @relation("TransactionDestination")
+  recurringOutgoing RecurringTransaction[] @relation("RecurringAccount")
+  recurringIncoming RecurringTransaction[] @relation("RecurringDestination")
+  goals             Goal[]
 
   @@index([userId, archived])
   @@map("accounts")
 }
 
 model Category {
-  id     String       @id @default(uuid()) @db.Uuid
-  userId String       @db.Uuid
-  name   String
-  kind   CategoryKind
-  icon   String
-  color  String
+  id        String       @id @default(uuid()) @db.Uuid
+  userId    String       @db.Uuid
+  name      String
+  kind      CategoryKind
+  icon      String
+  color     String
   /// Só nas despesas.
   group     BudgetGroup?
   /// As listas seguem a ordem de criação.
   createdAt DateTime     @default(now())
 
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions Transaction[]
+  recurring    RecurringTransaction[]
   budget       Budget?
 
   @@unique([userId, kind, name])
@@ -220,19 +239,86 @@ model Transaction {
   categoryId           String?           @db.Uuid
   status               TransactionStatus @default(CLEARED)
   notes                String?
+  /// Gerada por uma transação recorrente (fica, sem ligação, se a recorrente for apagada).
+  recurringId          String?           @db.Uuid
+  /// Importada de um SMS ou documento: referência estável do movimento (ex.: "MPESA:DJE6LY8KYP4"), para não importar duas vezes.
+  importRef            String?
   createdAt            DateTime          @default(now())
   updatedAt            DateTime          @updatedAt
 
-  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  account            Account   @relation("TransactionAccount", fields: [accountId], references: [id], onDelete: Restrict)
-  destinationAccount Account?  @relation("TransactionDestination", fields: [destinationAccountId], references: [id], onDelete: Restrict)
-  category           Category? @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  user               User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account            Account                 @relation("TransactionAccount", fields: [accountId], references: [id], onDelete: Restrict)
+  destinationAccount Account?                @relation("TransactionDestination", fields: [destinationAccountId], references: [id], onDelete: Restrict)
+  category           Category?               @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  recurring          RecurringTransaction?   @relation(fields: [recurringId], references: [id], onDelete: SetNull)
+  attachments        TransactionAttachment[]
 
+  @@unique([userId, importRef])
   @@index([userId, date])
+  @@index([recurringId, date])
   @@index([accountId, status])
   @@index([destinationAccountId, status])
   @@index([categoryId, date])
   @@map("transactions")
+}
+
+/// Comprovativo de uma transação: o SMS de confirmação (texto) ou um recibo em PDF/fotografia (ficheiro).
+model TransactionAttachment {
+  id            String         @id @default(uuid()) @db.Uuid
+  transactionId String         @db.Uuid
+  kind          AttachmentKind
+  name          String
+  mimeType      String?
+  /// Bytes do ficheiro (FILE) ou caracteres da mensagem (MESSAGE).
+  size          Int
+  text          String?
+  data          Bytes?
+  createdAt     DateTime       @default(now())
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId])
+  @@map("transaction_attachments")
+}
+
+/// Salário, renda, subscrições: gera as transações sozinha, `recurring.daysAhead` dias antes como previstas.
+/// A n-ésima data calcula-se sempre a partir do início (o dia 31 não "escorrega" depois de Fevereiro).
+model RecurringTransaction {
+  id                   String              @id @default(uuid()) @db.Uuid
+  userId               String              @db.Uuid
+  type                 TransactionType
+  description          String
+  amount               Decimal             @db.Decimal(15, 2)
+  accountId            String              @db.Uuid
+  destinationAccountId String?             @db.Uuid
+  categoryId           String?             @db.Uuid
+  notes                String?
+  frequency            RecurrenceFrequency
+  /// De quantas em quantas semanas/meses/anos.
+  interval             Int                 @default(1)
+  startDate            DateTime            @db.Date
+  endDate              DateTime?           @db.Date
+  /// Ocorrências já geradas (ou saltadas): a próxima é a de índice `generated`.
+  generated            Int                 @default(0)
+  /// Próxima data por gerar; null quando acabou.
+  nextDate             DateTime?           @db.Date
+  /// No dia, a transação fica liquidada sozinha; senão fica prevista até a confirmar.
+  autoConfirm          Boolean             @default(true)
+  /// Prestação ou outro compromisso que não se pode falhar (crédito, financiamento): a Previsão avisa se ficar em risco.
+  commitment           Boolean             @default(false)
+  active               Boolean             @default(true)
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account            Account       @relation("RecurringAccount", fields: [accountId], references: [id], onDelete: Restrict)
+  destinationAccount Account?      @relation("RecurringDestination", fields: [destinationAccountId], references: [id], onDelete: Restrict)
+  category           Category?     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  transactions       Transaction[]
+
+  @@index([userId, active])
+  @@index([active, nextDate])
+  @@map("recurring_transactions")
 }
 
 /// Limite mensal de uma categoria de despesa; repete-se todos os meses até ser alterado.
