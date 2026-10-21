@@ -3,7 +3,7 @@ import type { Money } from "../../shared/lib/money";
 
 export type AlertSeverity = "info" | "warning" | "critical";
 
-export type AlertKind = "BUDGET" | "BILL" | "LOW_BALANCE" | "GOAL" | "OVERSPENDING";
+export type AlertKind = "BUDGET" | "BILL" | "LOW_BALANCE" | "GOAL" | "OVERSPENDING" | "FORECAST";
 
 export interface Alert {
   /** Determinístico (ex.: budget:<categoria>:2026-10:over), para o estado "lido" sobreviver ao recálculo. */
@@ -32,6 +32,7 @@ export interface AlertSettingsResponse {
   lowBalanceAlerts: boolean;
   lowBalanceAmount: Money;
   goalAlerts: boolean;
+  forecastAlerts: boolean;
   weeklySummary: boolean;
   monthlyReport: boolean;
 }
