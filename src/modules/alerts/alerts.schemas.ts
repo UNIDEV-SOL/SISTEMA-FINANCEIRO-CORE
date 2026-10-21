@@ -14,6 +14,8 @@ export const alertSettingsInputSchema = z
     lowBalanceAlerts: z.boolean(),
     lowBalanceAmount: moneySchema("Valor inválido.").refine((v) => Number(v) >= 0, { message: "Valor inválido." }),
     goalAlerts: z.boolean(),
+    // Opcional: clientes antigos não o enviam (fica como está)
+    forecastAlerts: z.boolean().optional(),
     weeklySummary: z.boolean(),
     monthlyReport: z.boolean(),
   })

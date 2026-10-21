@@ -15,6 +15,10 @@ export interface TransactionResponse {
   categoryId?: string;
   status: TransactionStatus;
   notes?: string;
+  /** Gerada por esta transação recorrente. */
+  recurringId?: string;
+  /** Número de comprovativos. */
+  attachments: number;
   createdAt: string;
 }
 

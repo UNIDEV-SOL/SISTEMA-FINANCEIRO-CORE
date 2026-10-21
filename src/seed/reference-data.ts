@@ -5,6 +5,7 @@ import { appSettings } from "../shared/settings/app-settings";
 import { SETTING_DEFINITIONS } from "../shared/settings/definitions";
 import { periodsService } from "../modules/periods/periods.service";
 import { LATER_GRANTS, MENU, PROFILES, type MenuSeed } from "./access";
+import { seedGrowthPlans } from "./growth-plans";
 import { seedHelpContent } from "./help-content";
 
 /** Moedas iniciais (as mesmas da migração que substituiu o enum). */
@@ -120,6 +121,7 @@ export async function seedReferenceData() {
   }
 
   await seedHelpContent();
+  await seedGrowthPlans();
 
   appSettings.invalidate();
   accessPolicy.invalidate();

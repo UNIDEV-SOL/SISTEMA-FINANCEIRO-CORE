@@ -27,6 +27,8 @@ interface PathDoc {
   params?: z.ZodObject;
   query?: z.ZodObject;
   body?: z.ZodType;
+  /** Tipo do corpo (por omissão JSON; ex.: "application/pdf" para enviar um ficheiro). */
+  bodyType?: string;
   /** Sem `response`, a rota devolve 204. */
   response?: { status?: 200 | 201; schema: z.ZodType; description?: string };
 }
@@ -43,7 +45,7 @@ export function documentPath(doc: PathDoc) {
     request: {
       params: doc.params,
       query: doc.query,
-      body: doc.body ? { required: true, content: { "application/json": { schema: doc.body } } } : undefined,
+      body: doc.body ? { required: true, content: { [doc.bodyType ?? "application/json"]: { schema: doc.body } } } : undefined,
     },
     responses: {
       [status]: doc.response

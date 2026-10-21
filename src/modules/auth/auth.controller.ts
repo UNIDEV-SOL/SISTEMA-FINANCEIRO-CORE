@@ -3,7 +3,7 @@ import { StatusCodes } from "http-status-codes";
 import type { AuditActor } from "../../shared/middleware/audit";
 import { ACTING_AS_HEADER, currentActor } from "../../shared/middleware/authenticate";
 import { appSettings } from "../../shared/settings/app-settings";
-import { loginSchema, registerSchema } from "./auth.schemas";
+import { loginSchema, preferencesSchema, registerSchema } from "./auth.schemas";
 import { authService } from "./auth.service";
 
 const auditAs = (res: Response, actor: AuditActor) => {
@@ -29,5 +29,10 @@ export const authController = {
 
   async me(req: Request, res: Response) {
     res.json(await authService.me(currentActor(req).actorId, req.header(ACTING_AS_HEADER)));
+  },
+
+  async updatePreferences(req: Request, res: Response) {
+    const input = preferencesSchema.parse(req.body);
+    res.json(await authService.updatePreferences(currentActor(req).actorId, input));
   },
 };

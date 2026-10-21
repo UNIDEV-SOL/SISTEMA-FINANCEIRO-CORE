@@ -65,8 +65,12 @@ Não. O assistente responde a dúvidas a partir do manual e das perguntas freque
 
 ## Esqueci-me da palavra-passe. Como volto a entrar?
 <!-- key: esqueci-palavra-passe; category: Conta -->
-Peça ao administrador da aplicação para a **repor** em **Administração › Utilizadores**. Depois de entrar, use a palavra-passe nova que ele lhe indicar.
+Peça ao administrador da aplicação para a **repor** em **Administração › Utilizadores**. Depois de entrar, use a palavra-passe nova que lhe for indicada.
 
 ## Porque é que não vejo algumas páginas do menu ou alguns botões?
 <!-- key: sem-acesso; category: Conta -->
 O menu e os botões dependem do seu **perfil**. Se uma página não aparece ou mostra "Sem acesso", o seu perfil não tem essa permissão. Peça acesso ao administrador.
+
+## Posso importar os SMS do M-Pesa em vez de escrever as transações?
+<!-- key: importar-sms; category: Transações -->
+Sim. Em **Transações › Importar**, cole os SMS do M-Pesa, e-Mola ou BIM (vários de uma vez) e confira a lista antes de importar. Também pode enviar a nota de lançamento do BIM em PDF. O mesmo SMS nunca é importado duas vezes. Veja o artigo *Importar SMS e comprovativos*.

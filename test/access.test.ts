@@ -131,7 +131,7 @@ describe("autorização", () => {
 
     const menu: MenuNode[] = (await api().get("/api/v1/access/menu").set(auth).expect(200)).body;
     expect(menu.map((n) => n.code)).toEqual(["PLANNING"]);
-    expect(menu[0].children.map((n) => n.code)).toEqual(["BUDGETS", "GOALS", "INVESTMENTS"]);
+    expect(menu[0].children.map((n) => n.code)).toEqual(["BUDGETS", "GOALS", "INVESTMENTS", "FORECAST", "GROWTH"]);
     expect(menu[0].children[1].actions).toEqual(["VIEW", "CREATE"]);
   });
 
@@ -221,6 +221,7 @@ describe("menu", () => {
       "ADMIN_HELP",
       "ADMIN_AUDIT",
       "ADMIN_PERIODS",
+      "ADMIN_GROWTH",
       "ADMIN_USER_DATA",
     ]);
     expect(menu[4].children.find((n) => n.code === "ADMIN_PERIODS")).toMatchObject({ path: "/admin/periodos", icon: "calendar-range" });

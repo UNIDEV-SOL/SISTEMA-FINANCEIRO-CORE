@@ -9,6 +9,14 @@ export interface AuthUser {
   active: boolean;
   profile: { id: string; code: string; name: string; superAdmin: boolean };
   actingAs: ActingAs | null;
+  /** Acessibilidade: sempre de quem iniciou sessão. */
+  preferences: Preferences;
+}
+
+export interface Preferences {
+  textSize: "NORMAL" | "LARGE" | "XLARGE";
+  highContrast: boolean;
+  reduceMotion: boolean;
 }
 
 export interface Session {

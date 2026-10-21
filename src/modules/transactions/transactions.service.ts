@@ -1,6 +1,6 @@
 import type { Prisma, Transaction } from "../../generated/prisma";
 import { prisma } from "../../shared/db/prisma";
-import { NotFoundException, type FieldError } from "../../shared/errors/http-exceptions";
+import { ConflictException, NotFoundException, type FieldError } from "../../shared/errors/http-exceptions";
 import { orderByOf, toPage, type PageRequest } from "../../shared/http/pagination";
 import { throwIfInvalid, zodFieldErrors } from "../../shared/http/validation";
 import { currentYearMonth, fromIsoDate, monthRange, toIsoDate, type YearMonth } from "../../shared/lib/dates";
@@ -9,9 +9,9 @@ import { periodsService } from "../periods/periods.service";
 import { transactionInputSchema, type TRANSACTION_SORTS, type TransactionInput } from "./transactions.schemas";
 import type { TransactionList, TransactionResponse } from "./transactions.types";
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export const toTransactionResponse = (t: Transaction): TransactionResponse => ({
+export const toTransactionResponse = (t: Transaction & { _count?: { attachments: number } }): TransactionResponse => ({
   id: t.id,
   type: t.type,
   description: t.description,
@@ -22,6 +22,8 @@ export const toTransactionResponse = (t: Transaction): TransactionResponse => ({
   categoryId: t.categoryId ?? undefined,
   status: t.status,
   notes: t.notes ?? undefined,
+  recurringId: t.recurringId ?? undefined,
+  attachments: t._count?.attachments ?? 0,
   createdAt: t.createdAt.toISOString(),
 });
 
@@ -36,10 +38,10 @@ interface Filters {
   q?: string;
 }
 
-type References = Partial<Pick<TransactionInput, "type" | "accountId" | "destinationAccountId" | "categoryId">>;
+export type References = Partial<Pick<TransactionInput, "type" | "accountId" | "destinationAccountId" | "categoryId">>;
 
 /** Lê as referências do corpo em bruto, para as validar mesmo quando outros campos falham. */
-function referencesOf(body: unknown): References {
+export function referencesOf(body: unknown): References {
   const b = (body && typeof body === "object" ? body : {}) as Record<string, unknown>;
   const str = (v: unknown) => (typeof v === "string" && v ? v : undefined);
   const type = ["INCOME", "EXPENSE", "TRANSFER"].includes(b.type as string) ? (b.type as TransactionInput["type"]) : undefined;
@@ -50,7 +52,11 @@ function referencesOf(body: unknown): References {
  * Regras que dependem da base de dados.
  * Uma conta arquivada só é aceite se a transação já a usava (editar transações antigas).
  */
-async function validateReferences(userId: string, input: References, current?: Transaction): Promise<FieldError[]> {
+export async function validateReferences(
+  userId: string,
+  input: References,
+  current?: Pick<Transaction, "accountId" | "destinationAccountId">,
+): Promise<FieldError[]> {
   const errors: FieldError[] = [];
   const accountIds = [input.accountId, input.destinationAccountId].filter((id): id is string => !!id && UUID.test(id));
   const [accounts, category] = await Promise.all([
@@ -111,7 +117,13 @@ export const transactionsService = {
     if (and.length) where.AND = and;
 
     const [items, total, sums] = await Promise.all([
-      prisma.transaction.findMany({ where, orderBy: orderByOf(page.sort, NEWEST_FIRST), skip: page.skip, take: page.size }),
+      prisma.transaction.findMany({
+        where,
+        include: { _count: { select: { attachments: true } } },
+        orderBy: orderByOf(page.sort, NEWEST_FIRST),
+        skip: page.skip,
+        take: page.size,
+      }),
       prisma.transaction.count({ where }),
       prisma.transaction.groupBy({ by: ["type"], where, _sum: { amount: true } }),
     ]);
@@ -141,7 +153,10 @@ export const transactionsService = {
   async create(userId: string, body: unknown): Promise<TransactionResponse> {
     const input = await this.parse(userId, body);
     await periodsService.assertWritable(input.date, "date");
-    const transaction = await prisma.transaction.create({ data: { userId, ...fields(input) } });
+    // Com importRef (lançada a partir de um SMS colado), a mesma mensagem não entra duas vezes
+    if (input.importRef && (await prisma.transaction.findUnique({ where: { userId_importRef: { userId, importRef: input.importRef } }, select: { id: true } })))
+      throw new ConflictException("Esta mensagem já foi registada.");
+    const transaction = await prisma.transaction.create({ data: { userId, ...fields(input), importRef: input.importRef ?? null } });
     return toTransactionResponse(transaction);
   },
 
@@ -151,7 +166,15 @@ export const transactionsService = {
     // Nem sair de um ano fechado nem entrar num
     await periodsService.assertWritable(current.date);
     await periodsService.assertWritable(input.date, "date");
-    const transaction = await prisma.transaction.update({ where: { id }, data: fields(input) });
+    const transaction = await prisma.transaction.update({ where: { id }, data: fields(input), include: { _count: { select: { attachments: true } } } });
+    return toTransactionResponse(transaction);
+  },
+
+  /** Confirma uma prevista: passa a liquidada (entra no saldo), sem mexer no resto. */
+  async confirm(userId: string, id: string): Promise<TransactionResponse> {
+    const current = await this.findOwned(userId, id);
+    await periodsService.assertWritable(current.date);
+    const transaction = await prisma.transaction.update({ where: { id }, data: { status: "CLEARED" }, include: { _count: { select: { attachments: true } } } });
     return toTransactionResponse(transaction);
   },
 

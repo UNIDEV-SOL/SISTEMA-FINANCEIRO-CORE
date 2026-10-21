@@ -3,6 +3,8 @@ import "../../modules/auth/auth.docs";
 import "../../modules/accounts/accounts.docs";
 import "../../modules/categories/categories.docs";
 import "../../modules/transactions/transactions.docs";
+import "../../modules/recurring/recurring.docs";
+import "../../modules/imports/imports.docs";
 import "../../modules/dashboard/dashboard.docs";
 import "../../modules/budgets/budgets.docs";
 import "../../modules/goals/goals.docs";
@@ -21,6 +23,8 @@ import "../../modules/audit/audit.docs";
 import "../../modules/help/help.docs";
 import "../../modules/assistant/assistant.docs";
 import "../../modules/periods/periods.docs";
+import "../../modules/growth/growth.docs";
+import "../../modules/forecast/forecast.docs";
 import { registry } from "./registry";
 
 export const openApiDocument = new OpenApiGeneratorV3(registry.definitions).generateDocument({
