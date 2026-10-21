@@ -19,6 +19,7 @@ export const MENU: MenuSeed[] = [
     children: [
       { code: "DASHBOARD", label: "Dashboard", path: "/painel", icon: "layout-dashboard", apiPaths: ["/dashboard/**"] },
       { code: "TRANSACTIONS", label: "Transações", path: "/transacoes", icon: "arrow-left-right", apiPaths: ["/transactions/**"] },
+      { code: "RECURRING", label: "Recorrentes", path: "/recorrentes", icon: "repeat", apiPaths: ["/recurring/**"] },
       { code: "ACCOUNTS", label: "Contas", path: "/contas", icon: "wallet", apiPaths: ["/accounts/**"] },
     ],
   },
@@ -29,6 +30,7 @@ export const MENU: MenuSeed[] = [
       { code: "BUDGETS", label: "Orçamentos", path: "/orcamentos", icon: "target", apiPaths: ["/budgets/**"] },
       { code: "GOALS", label: "Metas", path: "/metas", icon: "piggy-bank", apiPaths: ["/goals/**"] },
       { code: "INVESTMENTS", label: "Investimentos", path: "/investimentos", icon: "trending-up", apiPaths: ["/investments/**"] },
+      { code: "FORECAST", label: "Previsão", path: "/previsao", icon: "calendar", apiPaths: ["/forecast/**"] },
       { code: "GROWTH", label: "Crescer", path: "/crescer", icon: "sprout", apiPaths: ["/growth/**"] },
     ],
   },
@@ -92,7 +94,7 @@ export interface ProfileSeed {
   permissions: Record<string, readonly Action[]>;
 }
 
-const PERSONAL = ["DASHBOARD", "TRANSACTIONS", "ACCOUNTS", "BUDGETS", "GOALS", "INVESTMENTS", "GROWTH", "REPORTS", "ALERTS", "CATEGORIES", "FAMILY", "HELP", "SETTINGS"];
+const PERSONAL = ["DASHBOARD", "TRANSACTIONS", "RECURRING", "ACCOUNTS", "BUDGETS", "GOALS", "INVESTMENTS", "FORECAST", "GROWTH", "REPORTS", "ALERTS", "CATEGORIES", "FAMILY", "HELP", "SETTINGS"];
 
 const all = (codes: string[]) => Object.fromEntries(codes.map((c) => [c, ACTIONS]));
 
@@ -103,6 +105,8 @@ const all = (codes: string[]) => Object.fromEntries(codes.map((c) => [c, ACTIONS
 export const LATER_GRANTS: { profile: string; functionality: string; actions: Action[] }[] = [
   { profile: "ADMIN", functionality: "ADMIN_USER_DATA", actions: ["VIEW"] },
   ...["ADMIN", "USER", "DEPENDENT"].map((profile) => ({ profile, functionality: "GROWTH", actions: [...ACTIONS] })),
+  ...["ADMIN", "USER", "DEPENDENT"].map((profile) => ({ profile, functionality: "RECURRING", actions: [...ACTIONS] })),
+  ...["ADMIN", "USER", "DEPENDENT"].map((profile) => ({ profile, functionality: "FORECAST", actions: [...ACTIONS] })),
 ];
 
 /** Perfis de sistema (não apagáveis). */
