@@ -7,3 +7,5 @@ accountsRoutes.get("/", accountsController.list);
 accountsRoutes.post("/", accountsController.create);
 accountsRoutes.put("/:id", accountsController.update);
 accountsRoutes.delete("/:id", accountsController.archive);
+// Altera a conta (acção EDIT, ver shared/access/actions.ts)
+accountsRoutes.post("/:id/restore", accountsController.restore);
