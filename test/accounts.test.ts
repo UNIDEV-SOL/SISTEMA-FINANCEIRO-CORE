@@ -1,7 +1,7 @@
 import { prisma } from "../src/shared/db/prisma";
 import { fromIsoDate } from "../src/shared/lib/dates";
 import { accountBalances } from "../src/modules/accounts/accounts.ledger";
-import { api, signUp } from "./helpers";
+import { api, setup, signUp } from "./helpers";
 
 const bank = { name: "Conta ordenado", type: "BANK", institution: "BCI", color: "#2563eb", initialBalance: "18500,50", includeInTotal: true };
 
@@ -80,5 +80,31 @@ describe("accounts", () => {
         data: { userId: user.id, description: "x", type: "TRANSFER", amount: "1", date: new Date(), accountId: a.id, destinationAccountId: a.id },
       }),
     ).rejects.toThrow();
+  });
+});
+
+describe("contas — arquivar e restaurar", () => {
+  it("as arquivadas saem da lista, vêem-se com archived=true e voltam com o saldo de sempre", async () => {
+    const { auth, bank, cat } = await setup("1000");
+    await api()
+      .post("/api/v1/transactions")
+      .set(auth)
+      .send({ type: "EXPENSE", description: "Renda", amount: "300", date: new Date().toISOString().slice(0, 10), accountId: bank.id, categoryId: cat("Renda e casa") })
+      .expect(201);
+    await api().delete(`/api/v1/accounts/${bank.id}`).set(auth).expect(204);
+    expect((await api().get("/api/v1/accounts").set(auth).expect(200)).body.totalItems).toBe(0);
+    const archived = (await api().get("/api/v1/accounts?archived=true").set(auth).expect(200)).body;
+    expect(archived.content).toEqual([expect.objectContaining({ id: bank.id, archived: true, balance: "700.00" })]);
+
+    const { body } = await api().post(`/api/v1/accounts/${bank.id}/restore`).set(auth).expect(200);
+    expect(body).toMatchObject({ id: bank.id, archived: false, balance: "700.00" });
+    expect((await api().get("/api/v1/accounts").set(auth).expect(200)).body.content.map((a: { id: string }) => a.id)).toEqual([bank.id]);
+  });
+
+  it("só restaura contas próprias", async () => {
+    const a = await setup();
+    const b = await setup();
+    await api().delete(`/api/v1/accounts/${a.bank.id}`).set(a.auth).expect(204);
+    await api().post(`/api/v1/accounts/${a.bank.id}/restore`).set(b.auth).expect(404);
   });
 });
